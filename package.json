@@ -2,10 +2,17 @@
   "name": "simplex",
   "version": "0.1.0",
   "description": "Simpler than regular expressions",
+  "repository": "https://github.com/dtao/simplex",
   "main": "simplex.js",
   "scripts": {
     "test": "autodoc -t simplex.js"
   },
   "author": "Dan Tao (daniel.tao@gmail.com)",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "~3.5.2",
+    "gulp-util": "~2.2.14",
+    "gulp-closure-compiler": "~0.1.2",
+    "gulp-rename": "~1.0.0"
+  }
 }
