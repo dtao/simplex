@@ -1,0 +1,11 @@
+{
+  "name": "simplex",
+  "version": "0.1.0",
+  "description": "Simpler than regular expressions",
+  "main": "simplex.js",
+  "scripts": {
+    "test": "autodoc -t simplex.js"
+  },
+  "author": "Dan Tao (daniel.tao@gmail.com)",
+  "license": "MIT"
+}
