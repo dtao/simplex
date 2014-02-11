@@ -46,11 +46,16 @@ Simplex.prototype = {
    * word-like tokens in the source expression for this {@link Simplex}, and
    * whose associated values are the matches for those tokens.
    *
+   * A very basic attempt will be made to infer the types of the matched values;
+   * i.e, values that appear to be numbers or booleans will be parsed as such.
+   * All other values will simply be strings.
+   *
    * @param {string} text
    * @returns {Object}
    *
    * @example
-   * Simplex('a=b(c) d/e').match('foo=bar(baz) yes/no'); // => {
+   * Simplex('a=b(c) d/e').match('foo=bar(baz) yes/no');
+   * // => {
    *   a: 'foo',
    *   b: 'bar',
    *   c: 'baz',
@@ -58,7 +63,8 @@ Simplex.prototype = {
    *   e: 'no'
    * }
    *
-   * Simplex('pairName=[x,y]', 'g').match('foo=[a,b]&bar=[c,d]'); // => [
+   * Simplex('pairName=[x,y]', 'g').match('foo=[a,b]&bar=[c,d]');
+   * // => [
    *   {
    *     pairName: 'foo',
    *     x: 'a',
@@ -70,6 +76,9 @@ Simplex.prototype = {
    *     y: 'd'
    *   }
    * ]
+   *
+   * Simplex('(x, y)').match('(1, 3)');
+   * // => { x: 1, y: 3 }
    */
   match: function match(text) {
     if (this.options.global) {
@@ -112,9 +121,30 @@ function mapMatch(match, map) {
     if (i > match.length) {
       break;
     }
-    data[map[i]] = match[i + 1];
+    data[map[i]] = weakParse(match[i + 1]);
   }
   return data;
+}
+
+/**
+ * @private
+ * @param {string} string
+ * @returns {number|boolean|string}
+ *
+ * weakParse('123');  // => 123
+ * weakParse('true'); // => true
+ * weakParse('foo');  // => 'foo'
+ * weakParse('123a'); // => '123a'
+ * weakParse('tru');  // => 'tru'
+ */
+function weakParse(string) {
+  if (/^\d+$/.test(string)) {
+    return Number(string);
+  } else if (/^(?:true|false)$/.test(string)) {
+    return Boolean(string);
+  }
+
+  return string;
 }
 
 /**
