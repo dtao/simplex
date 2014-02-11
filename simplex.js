@@ -5,16 +5,16 @@
 /**
  * @typedef {Object} SimplexOptions
  * @property {boolean} global
- * @property {FieldIdentifiers} fieldIdentifiers
+ * @property {FieldMarkers} fieldMarkers
  */
 var SimplexOptions;
 
 /**
- * @typedef {Object} FieldIdentifiers
+ * @typedef {Object} FieldMarkers
  * @property {string} left
  * @property {string} right
  */
-var FieldIdentifiers;
+var FieldMarkers;
 
 /**
  * @typedef {Object} MatchData
@@ -82,6 +82,8 @@ Simplex.prototype = {
    *
    * Simplex('<tags*>').match('blah <foo bar> blah');
    * // => { tags: 'foo bar' }
+   *
+   * Simplex('')
    */
   match: function match(text) {
     if (this.options.global) {
@@ -168,22 +170,22 @@ function weakParse(string) {
  *   map: ['name', 'value']
  * }
  *
- * createMatcher('[name] foo [value]', { fieldIdentifiers: '[]' });
+ * createMatcher('[name] foo [value]', { fieldMarkers: '[]' });
  * // => {
  *   pattern: /\[(\w+)\] foo \[(\w+)\]/,
  *   map: ['name', 'value']
  * }
  */
 function createMatcher(expression, options) {
-  var fieldIdentifiers = parseFieldIdentifiers(options.fieldIdentifiers),
-      tokenMatcher = getTokenMatcher(fieldIdentifiers),
+  var fieldMarkers = parseFieldMarkers(options.fieldMarkers),
+      tokenMatcher = getTokenMatcher(fieldMarkers),
       tokenMatch,
       pattern = '',
       index = 0,
       map = [];
 
   while (tokenMatch = tokenMatcher.exec(expression)) {
-    pattern += escapeRegex(expression.substring(index, tokenMatch.index) + fieldIdentifiers.left);
+    pattern += escapeRegex(expression.substring(index, tokenMatch.index) + fieldMarkers.left);
 
     if (/\*$/.test(tokenMatch[0])) {
       pattern += '([\\w\\s]+)';
@@ -191,7 +193,7 @@ function createMatcher(expression, options) {
       pattern += '(\\w+)';
     }
 
-    pattern += escapeRegex(fieldIdentifiers.right);
+    pattern += escapeRegex(fieldMarkers.right);
 
     index = tokenMatch.index + tokenMatch[0].length;
     map.push(tokenMatch[1]);
@@ -210,16 +212,16 @@ function createMatcher(expression, options) {
 /**
  * @private
  * @param {Array.<string>|Object|string} input
- * @return {FieldIdentifiers}
+ * @return {FieldMarkers}
  *
  * @example
- * parseFieldIdentifiers(null);                     // => { left: '', right: '' }
- * parseFieldIdentifiers('[]');                     // => { left: '[', right: ']' }
- * parseFieldIdentifiers('{{}}');                   // => { left: '{{', right: '}}' }
- * parseFieldIdentifiers(['a', 'b']);               // => { left: 'a', right: 'b' }
- * parseFieldIdentifiers({ left: '*', right: '!'}); // => { left: '*', right: '!'}
+ * parseFieldMarkers(null);                     // => { left: '', right: '' }
+ * parseFieldMarkers('[]');                     // => { left: '[', right: ']' }
+ * parseFieldMarkers('{{}}');                   // => { left: '{{', right: '}}' }
+ * parseFieldMarkers(['a', 'b']);               // => { left: 'a', right: 'b' }
+ * parseFieldMarkers({ left: '*', right: '!'}); // => { left: '*', right: '!'}
  */
-function parseFieldIdentifiers(input) {
+function parseFieldMarkers(input) {
   if (typeof input === 'string') {
     return {
       left: input.substring(0, input.length / 2),
@@ -244,20 +246,20 @@ function parseFieldIdentifiers(input) {
 
 /**
  * @private
- * @param {FieldIdentifiers} fieldIdentifiers
+ * @param {FieldMarkers} fieldMarkers
  * @returns {RegExp}
  *
  * @example
- * getTokenMatcher(parseFieldIdentifiers('{}')); // => /\{(\w+)\*?\}/g
+ * getTokenMatcher(parseFieldMarkers('{}')); // => /\{(\w+)\*?\}/g
  * getTokenMatcher({}); // => /(\w+)\*?/g
  */
-function getTokenMatcher(fieldIdentifiers) {
-  if (!fieldIdentifiers) {
+function getTokenMatcher(fieldMarkers) {
+  if (!fieldMarkers) {
     return /(\w+)\*?/g;
   }
 
-  var left  = fieldIdentifiers.left,
-      right = fieldIdentifiers.right;
+  var left  = fieldMarkers.left,
+      right = fieldMarkers.right;
 
   return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
 }
