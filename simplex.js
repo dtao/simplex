@@ -29,14 +29,14 @@ var MatchData;
  *
  * @constructor
  * @param {string} expression
- * @param {SimplexOptions|string} options
+ * @param {SimplexOptions} options
  */
 function Simplex(expression, options) {
   if (!(this instanceof Simplex)) {
     return new Simplex(expression, options);
   }
 
-  this.options = parseOptions(options || {});
+  this.options = (typeof options === 'object' && options) || {};
   this.matcher = createMatcher(expression, this.options);
 }
 
@@ -63,7 +63,7 @@ Simplex.prototype = {
    *   e: 'no'
    * }
    *
-   * Simplex('pairName=[x,y]', 'g').match('foo=[a,b]&bar=[c,d]');
+   * Simplex('pairName=[x,y]').matchAll('foo=[a,b]&bar=[c,d]');
    * // => [
    *   {
    *     pairName: 'foo',
@@ -273,28 +273,6 @@ function getTokenMatcher(fieldMarkers) {
  */
 function escapeRegex(source) {
   return (source || '').replace(/([\(\)\[\]\{\}\^\$])/g, '\\$1');
-}
-
-/**
- * @private
- * @param {Object|string} options
- * @returns {SimplexOptions}
- *
- * @example
- * parseOptions({});   // => { global: false }
- * parseOptions(null); // => { global: false }
- * parseOptions('g');  // => { global: true }
- */
-function parseOptions(options) {
-  if (typeof options === 'string') {
-    return { global: /g/.test(options) };
-  }
-
-  options = (typeof options === 'object' && options) || {};
-
-  return {
-    global: !!options.global
-  };
 }
 
 module.exports = Simplex;
