@@ -186,11 +186,6 @@ function createMatcher(expression, options) {
       index = 0,
       map = [];
 
-  fieldMarkers || (fieldMarkers = {
-    left: '',
-    right: ''
-  });
-
   while (tokenMatch = tokenMatcher.exec(expression)) {
     pattern += escapeRegex(expression.substring(index, tokenMatch.index));
 
@@ -275,11 +270,11 @@ function getTokenMatcher(fieldMarkers) {
 /**
  * @private
  * @param {string} match
- * @param {FieldMarkers} fieldMarkers
+ * @param {FieldMarkers?} fieldMarkers
  * @return {boolean}
  */
 function isMultiwordToken(match, fieldMarkers) {
-  if (fieldMarkers.right) {
+  if (fieldMarkers && fieldMarkers.right) {
     return new RegExp('\\*' + escapeRegex(fieldMarkers.right)).test(match);
   }
 
