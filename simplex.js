@@ -1,9 +1,24 @@
 /**
- * A simple expression.
+ * Simplex: simple expressions
+ */
+
+/**
+ * @typedef {{global: boolean}}
+ */
+var SimplexOptions;
+
+/**
+ * @typedef {{index: number, length: number}}
+ */
+var MatchData;
+
+/**
+ * A `Simplex` is sort of like a `RegExp` but simpler. The easiest way to
+ * explain this is by example; see the docs for more info.
  *
  * @constructor
  * @param {string} expression
- * @param {Object} options
+ * @param {SimplexOptions|string} options
  */
 function Simplex(expression, options) {
   if (!(this instanceof Simplex)) {
@@ -73,6 +88,9 @@ Simplex.prototype = {
 
 /**
  * @private
+ * @param {MatchData} match
+ * @param {Array.<string>} map
+ *
  * @example
  * var match = 'foo=bar'.match(/(\w+)=(\w+)/);
  * mapMatch(match, ['name', 'value']); // => { name: 'foo', value: 'bar' }
@@ -90,6 +108,8 @@ function mapMatch(match, map) {
 
 /**
  * @private
+ * @param {string} expression
+ *
  * @example
  * createMatcher('name=value'); // => { pattern: /(\w+)=(\w+)/, map: ['name', 'value'] }
  * createMatcher('{ name: value }'); // => { pattern: /\{ (\w+): (\w+) \}/, map: ['name', 'value'] }
@@ -119,6 +139,8 @@ function createMatcher(expression) {
 
 /**
  * @private
+ * @param {string} source
+ *
  * @example
  * escapeRegex('^hi$'); // => '\\^hi\\$'
  */
@@ -128,22 +150,24 @@ function escapeRegex(source) {
 
 /**
  * @private
+ * @param {Object|string} options
+ * @returns {SimplexOptions}
+ *
  * @example
  * parseOptions({});   // => {}
  * parseOptions(null); // => {}
  * parseOptions('g');  // => { global: true }
  */
 function parseOptions(options) {
-  switch (typeof options) {
-    case 'object':
-      return options || {};
-
-    case 'string':
-      return { global: /g/.test(options) };
-
-    default:
-      return {};
+  if (typeof options === 'string') {
+    return { global: /g/.test(options) };
   }
+
+  options = typeof options === 'object' && options || {};
+
+  return {
+    global: !!options.global
+  };
 }
 
 module.exports = Simplex;
