@@ -83,7 +83,9 @@ Simplex.prototype = {
    * Simplex('<tags*>').match('blah <foo bar> blah');
    * // => { tags: 'foo bar' }
    *
-   * Simplex('')
+   * Simplex('[exclamation*]!', { fieldMarkers: '[]' })
+   *   .match('Hello there, Dan!');
+   * // => { exclamation: 'Hello there, Dan'}
    */
   match: function match(text) {
     if (this.options.global) {
@@ -172,7 +174,7 @@ function weakParse(string) {
  *
  * createMatcher('[name] foo [value]', { fieldMarkers: '[]' });
  * // => {
- *   pattern: /\[(\w+)\] foo \[(\w+)\]/,
+ *   pattern: /(\w+) foo (\w+)/,
  *   map: ['name', 'value']
  * }
  */
@@ -184,22 +186,26 @@ function createMatcher(expression, options) {
       index = 0,
       map = [];
 
-  while (tokenMatch = tokenMatcher.exec(expression)) {
-    pattern += escapeRegex(expression.substring(index, tokenMatch.index) + fieldMarkers.left);
+  fieldMarkers || (fieldMarkers = {
+    left: '',
+    right: ''
+  });
 
-    if (/\*$/.test(tokenMatch[0])) {
-      pattern += '([\\w\\s]+)';
+  while (tokenMatch = tokenMatcher.exec(expression)) {
+    pattern += escapeRegex(expression.substring(index, tokenMatch.index));
+
+    if (isMultiwordToken(tokenMatch[0], fieldMarkers)) {
+      pattern += '(.*)';
     } else {
       pattern += '(\\w+)';
     }
 
-    pattern += escapeRegex(fieldMarkers.right);
-
     index = tokenMatch.index + tokenMatch[0].length;
+
     map.push(tokenMatch[1]);
   }
 
-  if (index < expression.length - 1) {
+  if (index < expression.length) {
     pattern += escapeRegex(expression.substring(index));
   }
 
@@ -212,16 +218,20 @@ function createMatcher(expression, options) {
 /**
  * @private
  * @param {Array.<string>|Object|string} input
- * @return {FieldMarkers}
+ * @return {FieldMarkers|null}
  *
  * @example
- * parseFieldMarkers(null);                     // => { left: '', right: '' }
+ * parseFieldMarkers(null);                     // => null
  * parseFieldMarkers('[]');                     // => { left: '[', right: ']' }
  * parseFieldMarkers('{{}}');                   // => { left: '{{', right: '}}' }
  * parseFieldMarkers(['a', 'b']);               // => { left: 'a', right: 'b' }
  * parseFieldMarkers({ left: '*', right: '!'}); // => { left: '*', right: '!'}
  */
 function parseFieldMarkers(input) {
+  if (!input) {
+    return null;
+  }
+
   if (typeof input === 'string') {
     return {
       left: input.substring(0, input.length / 2),
@@ -235,8 +245,6 @@ function parseFieldMarkers(input) {
       right: input[1]
     };
   }
-
-  input = (typeof input === 'object' && input) || {};
 
   return {
     left: input.left || '',
@@ -262,6 +270,20 @@ function getTokenMatcher(fieldMarkers) {
       right = fieldMarkers.right;
 
   return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
+}
+
+/**
+ * @private
+ * @param {string} match
+ * @param {FieldMarkers} fieldMarkers
+ * @return {boolean}
+ */
+function isMultiwordToken(match, fieldMarkers) {
+  if (fieldMarkers.right) {
+    return new RegExp('\\*' + escapeRegex(fieldMarkers.right)).test(match);
+  }
+
+  return /\*$/.test(match);
 }
 
 /**
