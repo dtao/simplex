@@ -63,20 +63,6 @@ Simplex.prototype = {
    *   e: 'no'
    * }
    *
-   * Simplex('pairName=[x,y]').matchAll('foo=[a,b]&bar=[c,d]');
-   * // => [
-   *   {
-   *     pairName: 'foo',
-   *     x: 'a',
-   *     y: 'b'
-   *   },
-   *   {
-   *     pairName: 'bar',
-   *     x: 'c',
-   *     y: 'd'
-   *   }
-   * ]
-   *
    * Simplex('(x, y)').match('(1, 3)');
    * // => { x: 1, y: 3 }
    *
@@ -99,6 +85,28 @@ Simplex.prototype = {
     return mapMatch(regexMatch, this.matcher.map);
   },
 
+  /**
+   * Behaves like {@link #match}, but returns an array with *all* matches from
+   * the given string.
+   *
+   * @param {string} text
+   * @returns {Object}
+   *
+   * @example
+   * Simplex('pairName=[x,y]').matchAll('foo=[a,b]&bar=[c,d]');
+   * // => [
+   *   {
+   *     pairName: 'foo',
+   *     x: 'a',
+   *     y: 'b'
+   *   },
+   *   {
+   *     pairName: 'bar',
+   *     x: 'c',
+   *     y: 'd'
+   *   }
+   * ]
+   */
   matchAll: function matchAll(text) {
     var pattern = new RegExp(this.matcher.pattern.source, 'g'),
         map     = this.matcher.map,
