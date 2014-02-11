@@ -4,7 +4,6 @@
 
 /**
  * @typedef {Object} SimplexOptions
- * @property {boolean} global
  * @property {FieldMarkers} fieldMarkers
  */
 var SimplexOptions;
