@@ -79,6 +79,9 @@ Simplex.prototype = {
    *
    * Simplex('(x, y)').match('(1, 3)');
    * // => { x: 1, y: 3 }
+   *
+   * Simplex('<tags*>').match('blah <foo bar> blah');
+   * // => { tags: 'foo bar' }
    */
   match: function match(text) {
     if (this.options.global) {
@@ -181,7 +184,13 @@ function createMatcher(expression, options) {
 
   while (tokenMatch = tokenMatcher.exec(expression)) {
     pattern += escapeRegex(expression.substring(index, tokenMatch.index) + fieldIdentifiers.left);
-    pattern += '(\\w+)';
+
+    if (/\*$/.test(tokenMatch[0])) {
+      pattern += '([\\w\\s]+)';
+    } else {
+      pattern += '(\\w+)';
+    }
+
     pattern += escapeRegex(fieldIdentifiers.right);
 
     index = tokenMatch.index + tokenMatch[0].length;
@@ -239,18 +248,18 @@ function parseFieldIdentifiers(input) {
  * @returns {RegExp}
  *
  * @example
- * getTokenMatcher(parseFieldIdentifiers('{}')); // => /\{(\w+)\}/g
- * getTokenMatcher({}); // => /(\w+)/g
+ * getTokenMatcher(parseFieldIdentifiers('{}')); // => /\{(\w+)\*?\}/g
+ * getTokenMatcher({}); // => /(\w+)\*?/g
  */
 function getTokenMatcher(fieldIdentifiers) {
   if (!fieldIdentifiers) {
-    return /(\w+)/g;
+    return /(\w+)\*?/g;
   }
 
   var left  = fieldIdentifiers.left,
       right = fieldIdentifiers.right;
 
-  return new RegExp(escapeRegex(left) + '(\\w+)' + escapeRegex(right), 'g');
+  return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
 }
 
 /**
