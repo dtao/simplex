@@ -1,14 +1,25 @@
 /**
- * Simplex: simple expressions
+ * Simplex: Simpler than regular expressions
  */
 
 /**
- * @typedef {{global: boolean}}
+ * @typedef {Object} SimplexOptions
+ * @property {boolean} global
+ * @property {FieldIdentifiers} fieldIdentifiers
  */
 var SimplexOptions;
 
 /**
- * @typedef {{index: number, length: number}}
+ * @typedef {Object} FieldIdentifiers
+ * @property {string} left
+ * @property {string} right
+ */
+var FieldIdentifiers;
+
+/**
+ * @typedef {Object} MatchData
+ * @property {number} index
+ * @property {number} length
  */
 var MatchData;
 
@@ -25,8 +36,8 @@ function Simplex(expression, options) {
     return new Simplex(expression, options);
   }
 
-  this.matcher = createMatcher(expression);
   this.options = parseOptions(options || {});
+  this.matcher = createMatcher(expression, this.options);
 }
 
 Simplex.prototype = {
@@ -109,22 +120,42 @@ function mapMatch(match, map) {
 /**
  * @private
  * @param {string} expression
+ * @param {SimplexOptions} options
  *
  * @example
- * createMatcher('name=value'); // => { pattern: /(\w+)=(\w+)/, map: ['name', 'value'] }
- * createMatcher('{ name: value }'); // => { pattern: /\{ (\w+): (\w+) \}/, map: ['name', 'value'] }
+ * createMatcher('name=value', {});
+ * // => {
+ *   pattern: /(\w+)=(\w+)/,
+ *   map: ['name', 'value']
+ * }
+ *
+ * createMatcher('{ name: value }', {});
+ * // => {
+ *   pattern: /\{ (\w+): (\w+) \}/,
+ *   map: ['name', 'value']
+ * }
+ *
+ * createMatcher('[name] foo [value]', { fieldIdentifiers: '[]' });
+ * // => {
+ *   pattern: /\[(\w+)\] foo \[(\w+)\]/,
+ *   map: ['name', 'value']
+ * }
  */
-function createMatcher(expression) {
-  var tokenMatcher = /\w+/g,
+function createMatcher(expression, options) {
+  var fieldIdentifiers = parseFieldIdentifiers(options.fieldIdentifiers),
+      tokenMatcher = getTokenMatcher(fieldIdentifiers),
       tokenMatch,
       pattern = '',
       index = 0,
       map = [];
 
   while (tokenMatch = tokenMatcher.exec(expression)) {
-    pattern += escapeRegex(expression.substring(index, tokenMatch.index)) + '(\\w+)';
+    pattern += escapeRegex(expression.substring(index, tokenMatch.index) + fieldIdentifiers.left);
+    pattern += '(\\w+)';
+    pattern += escapeRegex(fieldIdentifiers.right);
+
     index = tokenMatch.index + tokenMatch[0].length;
-    map.push(tokenMatch[0]);
+    map.push(tokenMatch[1]);
   }
 
   if (index < expression.length - 1) {
@@ -139,13 +170,68 @@ function createMatcher(expression) {
 
 /**
  * @private
+ * @param {Array.<string>|Object|string} input
+ * @return {FieldIdentifiers}
+ *
+ * @example
+ * parseFieldIdentifiers(null);                     // => { left: '', right: '' }
+ * parseFieldIdentifiers('[]');                     // => { left: '[', right: ']' }
+ * parseFieldIdentifiers('{{}}');                   // => { left: '{{', right: '}}' }
+ * parseFieldIdentifiers(['a', 'b']);               // => { left: 'a', right: 'b' }
+ * parseFieldIdentifiers({ left: '*', right: '!'}); // => { left: '*', right: '!'}
+ */
+function parseFieldIdentifiers(input) {
+  if (typeof input === 'string') {
+    return {
+      left: input.substring(0, input.length / 2),
+      right: input.substring(input.length / 2)
+    };
+  }
+
+  if (input instanceof Array) {
+    return {
+      left: input[0],
+      right: input[1]
+    };
+  }
+
+  input = (typeof input === 'object' && input) || {};
+
+  return {
+    left: input.left || '',
+    right: input.right || ''
+  };
+}
+
+/**
+ * @private
+ * @param {FieldIdentifiers} fieldIdentifiers
+ * @returns {RegExp}
+ *
+ * @example
+ * getTokenMatcher(parseFieldIdentifiers('{}')); // => /\{(\w+)\}/g
+ * getTokenMatcher({}); // => /(\w+)/g
+ */
+function getTokenMatcher(fieldIdentifiers) {
+  if (!fieldIdentifiers) {
+    return /(\w+)/g;
+  }
+
+  var left  = fieldIdentifiers.left,
+      right = fieldIdentifiers.right;
+
+  return new RegExp(escapeRegex(left) + '(\\w+)' + escapeRegex(right), 'g');
+}
+
+/**
+ * @private
  * @param {string} source
  *
  * @example
  * escapeRegex('^hi$'); // => '\\^hi\\$'
  */
 function escapeRegex(source) {
-  return source.replace(/([\(\)\[\]\{\}\^\$])/g, '\\$1');
+  return (source || '').replace(/([\(\)\[\]\{\}\^\$])/g, '\\$1');
 }
 
 /**
@@ -154,8 +240,8 @@ function escapeRegex(source) {
  * @returns {SimplexOptions}
  *
  * @example
- * parseOptions({});   // => {}
- * parseOptions(null); // => {}
+ * parseOptions({});   // => { global: false }
+ * parseOptions(null); // => { global: false }
  * parseOptions('g');  // => { global: true }
  */
 function parseOptions(options) {
@@ -163,7 +249,7 @@ function parseOptions(options) {
     return { global: /g/.test(options) };
   }
 
-  options = typeof options === 'object' && options || {};
+  options = (typeof options === 'object' && options) || {};
 
   return {
     global: !!options.global
