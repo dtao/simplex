@@ -71,6 +71,10 @@
      * // Be lenient w/ whitespace by default.
      * Simplex('a b c').match('foo   bar\n\tbaz');
      * // => { a: 'foo', b: 'bar', c: 'baz' }
+     *
+     * // Fields can be multiple words when field markers are specified
+     * Simplex('([foo bar])', { fieldMarkers: '[]' }).match('(baz)');
+     * // => { 'foo bar': 'baz' }
      */
     match: function match(text) {
       if (this.options.global) {
@@ -187,24 +191,24 @@
    */
   function createMatcher(expression, options) {
     var fieldMarkers = parseFieldMarkers(options.fieldMarkers),
-        tokenMatcher = getTokenMatcher(fieldMarkers),
-        tokenMatch,
+        fieldMatcher = getFieldMatcher(fieldMarkers),
+        fieldMatch,
         pattern = '',
         index = 0,
         map = [];
 
-    while (tokenMatch = tokenMatcher.exec(expression)) {
-      pattern += getPatternSegment(expression.substring(index, tokenMatch.index), options);
+    while (fieldMatch = fieldMatcher.exec(expression)) {
+      pattern += getPatternSegment(expression.substring(index, fieldMatch.index), options);
 
-      if (isMultiwordToken(tokenMatch[0], fieldMarkers)) {
+      if (isMultiwordField(fieldMatch[0], fieldMarkers)) {
         pattern += '(.*)';
       } else {
         pattern += '(\\w+)';
       }
 
-      index = tokenMatch.index + tokenMatch[0].length;
+      index = fieldMatch.index + fieldMatch[0].length;
 
-      map.push(tokenMatch[1]);
+      map.push(fieldMatch[1]);
     }
 
     if (index < expression.length) {
@@ -245,22 +249,23 @@
 
   /**
    * @private
-   * @param {Array.<string>} fieldMarkers
+   * @param {Array.<string>?} fieldMarkers
    * @returns {RegExp}
    *
    * @example
-   * getTokenMatcher(parseFieldMarkers('{}')); // => /\{(\w+)\*?\}/g
-   * getTokenMatcher({}); // => /(\w+)\*?/g
+   * getFieldMatcher(null);       // => /(\w+)\*?/g
+   * getFieldMatcher(['{', '}']); // => /\{([\w\s]+)\*?\}/g
    */
-  function getTokenMatcher(fieldMarkers) {
+  function getFieldMatcher(fieldMarkers) {
     if (!fieldMarkers) {
       return /(\w+)\*?/g;
     }
 
-    var left  = fieldMarkers[0],
-        right = fieldMarkers[1];
+    var left  = escapeRegex(fieldMarkers[0]),
+        right = escapeRegex(fieldMarkers[1]);
 
-    return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
+    // If we're using field markers, then we can allow spaces in field names.
+    return new RegExp(left + '([\\w\\s]+)\\*?' + right, 'g');
   }
 
   /**
@@ -287,7 +292,7 @@
    * @param {Array.<string>?} fieldMarkers
    * @return {boolean}
    */
-  function isMultiwordToken(match, fieldMarkers) {
+  function isMultiwordField(match, fieldMarkers) {
     if (fieldMarkers && fieldMarkers[1]) {
       return new RegExp('\\*' + escapeRegex(fieldMarkers[1])).test(match);
     }
