@@ -227,10 +227,11 @@
    * @return {Array.<string>|null}
    *
    * @example
-   * parseFieldMarkers(null);                     // => null
-   * parseFieldMarkers('[]');                     // => ['[', ']']
-   * parseFieldMarkers('{{}}');                   // => ['{{', '}}']
-   * parseFieldMarkers(['a', 'b']);               // => ['a', 'b']
+   * parseFieldMarkers(null);       // => null
+   * parseFieldMarkers('[]');       // => ['[', ']']
+   * parseFieldMarkers('{{}}');     // => ['{{', '}}']
+   * parseFieldMarkers(['a', 'b']); // => ['a', 'b']
+   * parseFieldMarkers('<*>');      // => ['<*', '*>']
    */
   function parseFieldMarkers(input) {
     if (!input) {
@@ -239,8 +240,8 @@
 
     if (typeof input === 'string') {
       return [
-        input.substring(0, input.length / 2),
-        input.substring(input.length / 2)
+        input.substring(0, Math.ceil(input.length / 2)),
+        input.substring(Math.floor(input.length / 2))
       ];
     }
 
