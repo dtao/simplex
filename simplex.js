@@ -6,17 +6,10 @@
 
   /**
    * @typedef {Object} SimplexOptions
-   * @property {FieldMarkers} fieldMarkers
+   * @property {Array.<string>} fieldMarkers
    * @property {boolean} strictWhitespace
    */
   var SimplexOptions;
-
-  /**
-   * @typedef {Object} FieldMarkers
-   * @property {string} left
-   * @property {string} right
-   */
-  var FieldMarkers;
 
   /**
    * @typedef {Object} MatchData
@@ -227,14 +220,13 @@
   /**
    * @private
    * @param {Array.<string>|Object|string} input
-   * @return {FieldMarkers|null}
+   * @return {Array.<string>|null}
    *
    * @example
    * parseFieldMarkers(null);                     // => null
-   * parseFieldMarkers('[]');                     // => { left: '[', right: ']' }
-   * parseFieldMarkers('{{}}');                   // => { left: '{{', right: '}}' }
-   * parseFieldMarkers(['a', 'b']);               // => { left: 'a', right: 'b' }
-   * parseFieldMarkers({ left: '*', right: '!'}); // => { left: '*', right: '!'}
+   * parseFieldMarkers('[]');                     // => ['[', ']']
+   * parseFieldMarkers('{{}}');                   // => ['{{', '}}']
+   * parseFieldMarkers(['a', 'b']);               // => ['a', 'b']
    */
   function parseFieldMarkers(input) {
     if (!input) {
@@ -242,28 +234,18 @@
     }
 
     if (typeof input === 'string') {
-      return {
-        left: input.substring(0, input.length / 2),
-        right: input.substring(input.length / 2)
-      };
+      return [
+        input.substring(0, input.length / 2),
+        input.substring(input.length / 2)
+      ];
     }
 
-    if (input instanceof Array) {
-      return {
-        left: input[0],
-        right: input[1]
-      };
-    }
-
-    return {
-      left: input.left || '',
-      right: input.right || ''
-    };
+    return input;
   }
 
   /**
    * @private
-   * @param {FieldMarkers} fieldMarkers
+   * @param {Array.<string>} fieldMarkers
    * @returns {RegExp}
    *
    * @example
@@ -275,8 +257,8 @@
       return /(\w+)\*?/g;
     }
 
-    var left  = fieldMarkers.left,
-        right = fieldMarkers.right;
+    var left  = fieldMarkers[0],
+        right = fieldMarkers[1];
 
     return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
   }
@@ -302,12 +284,12 @@
   /**
    * @private
    * @param {string} match
-   * @param {FieldMarkers?} fieldMarkers
+   * @param {Array.<string>?} fieldMarkers
    * @return {boolean}
    */
   function isMultiwordToken(match, fieldMarkers) {
-    if (fieldMarkers && fieldMarkers.right) {
-      return new RegExp('\\*' + escapeRegex(fieldMarkers.right)).test(match);
+    if (fieldMarkers && fieldMarkers[1]) {
+      return new RegExp('\\*' + escapeRegex(fieldMarkers[1])).test(match);
     }
 
     return /\*$/.test(match);
