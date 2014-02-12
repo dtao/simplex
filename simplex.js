@@ -7,6 +7,7 @@
   /**
    * @typedef {Object} SimplexOptions
    * @property {FieldMarkers} fieldMarkers
+   * @property {boolean} strictWhitespace
    */
   var SimplexOptions;
 
@@ -73,6 +74,10 @@
      * Simplex('[exclamation*]!', { fieldMarkers: '[]' })
      *   .match('Hello there, Dan!');
      * // => { exclamation: 'Hello there, Dan'}
+     *
+     * // Be lenient w/ whitespace by default.
+     * Simplex('a b c').match('foo   bar\n\tbaz');
+     * // => { a: 'foo', b: 'bar', c: 'baz' }
      */
     match: function match(text) {
       if (this.options.global) {
@@ -175,7 +180,7 @@
    *   map: ['name', 'value']
    * }
    *
-   * createMatcher('{ name: value }', {});
+   * createMatcher('{ name: value }', { strictWhitespace: true });
    * // => {
    *   pattern: /\{ (\w+): (\w+) \}/,
    *   map: ['name', 'value']
@@ -183,7 +188,7 @@
    *
    * createMatcher('[name] foo [value]', { fieldMarkers: '[]' });
    * // => {
-   *   pattern: /(\w+) foo (\w+)/,
+   *   pattern: /(\w+)\s+foo\s+(\w+)/,
    *   map: ['name', 'value']
    * }
    */
@@ -196,7 +201,7 @@
         map = [];
 
     while (tokenMatch = tokenMatcher.exec(expression)) {
-      pattern += escapeRegex(expression.substring(index, tokenMatch.index));
+      pattern += getPatternSegment(expression.substring(index, tokenMatch.index), options);
 
       if (isMultiwordToken(tokenMatch[0], fieldMarkers)) {
         pattern += '(.*)';
@@ -210,7 +215,7 @@
     }
 
     if (index < expression.length) {
-      pattern += escapeRegex(expression.substring(index));
+      pattern += getPatternSegment(expression.substring(index), options);
     }
 
     return {
@@ -274,6 +279,24 @@
         right = fieldMarkers.right;
 
     return new RegExp(escapeRegex(left) + '(\\w+)\\*?' + escapeRegex(right), 'g');
+  }
+
+  /**
+   * @private
+   * @param {string} segment
+   * @returns {string}
+   *
+   * @example
+   * getPatternSegment('foo bar', {}); // => 'foo\\s+bar'
+   */
+  function getPatternSegment(segment, options) {
+    segment = escapeRegex(segment)
+
+    if (!options.strictWhitespace) {
+      segment = segment.replace(/\s+/g, '\\s+');
+    }
+
+    return segment;
   }
 
   /**

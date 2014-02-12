@@ -9,15 +9,15 @@ Simplex('name=value').match('foo=bar');
 
 Let's say you have some text like this:
 
-    Bob 35 (M)
-    Suzie 42 (F)
-    Phil 29 (M)
+    Bob     35 (M)
+    Suzie   42 (F)
+    Phil    29 (M)
     Marlene 26 (F)
 
 Quick! Can you write code to parse those lines using a regular expression?
 
 ```javascript
-var pattern = /(\w+) (\d+) \(([MF])\)/g,
+var pattern = /(\w+)\s+(\d+)\s+\(([MF])\)/g,
     people  = [],
     match;
 
