@@ -56,50 +56,71 @@ Way easier!
 
 ## Usage
 
-We've looked at a couple of simple examples already. You use `match` to get a
-single match, `matchAll` to get all matches. Now here's some more info we
-haven't covered yet.
-
-By default Simplex treats every *word-like* token as a placeholder to be matched
-against a single word. This means letters, numbers, and underscores (same as
-with regular expressions). So:
+The `Simplex` constructor (which can be called with or without `new`) takes two
+arguments: a *pattern expression* (required) and an optional `options` object.
 
 ```javascript
-Simplex('first middle last').match('Daniel Lincoln Tao');
-// => { first: 'Daniel', middle: 'Lincoln', last: 'Tao' };
+var simplex = new Simplex('expression', { /* options */ });
 ```
 
-If you want a placeholder to represent *multiple* words, add the '*' suffix:
+The `match` method takes a string, matches it against the given pattern, and
+returns the first result. To return an array of *all* results, use `matchAll`.
+
+## How it works
+
+A *pattern expression* consists of *fields* that will be matched. For example,
+take this expression:
+
+    term (type) def*
+
+The *fields* are `term`, `type`, and `def`. When you call `match`, Simplex will
+look for a word where each field is. The '*' after `def` tells Simplex to match
+potentially *multiple* words for that field.
+
+If it matches all fields, it will return an object whose keys are the names of
+the fields, and whose values are the matches:
 
 ```javascript
-Simplex('"quoted*"')
-  .match('...he was like "blah blah blah" and I was like...');
-// => { quoted: 'blah blah blah' }
+Simplex('term (type) def*').match('coffee (noun) a tasty hot beverage');
+// => { term: 'coffee', type: 'noun', def: 'a tasty hot beverage' }
 ```
 
-Now, this is all great when every word-like token in the source should be a
-placeholder. Sometimes that isn't the case. If you want/need to be more explicit
-about where the placeholders are, you can specify the `fieldMarkers` option to
-the `Simplex` constructor (which can be called with or without `new`).
+By default Simplex treats every *word-like* token as a field. This means
+letters, numbers, and underscores (same as with regular expressions). If you
+want to represent fields differently, supply the `fieldMarkers` option:
 
 ```javascript
+// Here we need to use field markers so that the first 'format' below isn't
+// treated as a field
 Simplex('--format=<format>', { fieldMarkers: '<>' })
   .match('--format=html');
 // => { format: 'html' }
+
+// We also need to use field markers for multi-word fields
+Simplex('[silly greeting*], Mark!', { fieldMarkers: '[]' })
+  .match('Oh hai, Mark!');
+// => { 'silly greeting': 'Oh hai' }
 ```
 
-Notice we specified the string `'<>'`. This tells Simplex that placeholders
-start with `'<'` and end with `'>'`. This works with any string with an even
-number of characters; Simplex will take the first half as the left marker, and
-the second half as the right:
+Consider the first example above. Notice we specified the string `'<>'`. This
+tells Simplex that placeholders start with `'<'` and end with `'>'`. This works
+with any string; Simplex will take the first half as the left marker, and the
+second half as the right. For strings with an odd number of characters, the
+assumption is that the middle character goes on both sides.
 
 ```javascript
-Simplex('<div>{{message*}}</div>', { fieldMarkers: '{{}}' })
+Simplex('<div>{{content*}}</div>', { fieldMarkers: '{{}}' })
   .match('<div>Hello, world!</div>');
-// => { message: 'Hello, world!' }
+// => { content: 'Hello, world!' }
+
+Simplex('Roses are <*rose color*>', { fieldMarkers: '<*>' })
+  .match('Roses are red');
+// => { 'rose color': 'red' }
 ```
 
-By default, it also does some very basic type inference for numbers and boolean
+## Options
+
+By default, Simplex does some very basic type inference for numbers and boolean
 values.
 
 ```javascript
@@ -110,6 +131,13 @@ Simplex('--verbose=<verbose>', { fieldMarkers: '<>' })
   .match('--verbose=true');
 // => { verbose: true }
 ```
+
+This isn't configurable yet, but it will be!
+
+### strictWhitespace
+
+By default Simplex is *lenient* with whitespace. Set this option to `true` to
+make it strict.
 
 Questions? [Open a ticket!](https://github.com/dtao/simplex/issues)
 
