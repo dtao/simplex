@@ -71,7 +71,7 @@ returns the first result. To return an array of *all* results, use `matchAll`.
 A *pattern expression* consists of *fields* that will be matched. For example,
 take this expression:
 
-    term (type) def*
+    term (type): def*
 
 The *fields* are `term`, `type`, and `def`. When you call `match`, Simplex will
 look for a word where each field is. The '\*' after `def` tells Simplex to match
@@ -81,46 +81,14 @@ When all fields are matched, the result will be an object whose keys are the
 names of the fields, and whose values are the matches:
 
 ```javascript
-Simplex('term (type) def*').match('coffee (noun) a tasty hot beverage');
+Simplex('term (type): def*').match('coffee (noun): a tasty hot beverage');
 // => { term: 'coffee', type: 'noun', def: 'a tasty hot beverage' }
 ```
 
 By default Simplex treats every *word-like* token as a field. This means
 letters, numbers, and underscores (same as with regular expressions). If you
-want to represent fields differently, supply the `fieldMarkers` option:
-
-```javascript
-// Here we need to use field markers so that the first 'format' below isn't
-// treated as a field
-Simplex('--format=<format>', { fieldMarkers: '<>' })
-  .match('--format=html');
-// => { format: 'html' }
-
-// We also need to use field markers for multi-word fields
-Simplex('[silly greeting*], Mark!', { fieldMarkers: '[]' })
-  .match('Oh hai, Mark!');
-// => { 'silly greeting': 'Oh hai' }
-```
-
-Consider the first example above. Notice we specified the string `'<>'`. This
-tells Simplex that placeholders start with `'<'` and end with `'>'`. This works
-with any string; Simplex will take the first half as the left marker, and the
-second half as the right.
-
-```javascript
-Simplex('<div>{{content*}}</div>', { fieldMarkers: '{{}}' })
-  .match('<div>Hello, world!</div>');
-// => { content: 'Hello, world!' }
-```
-
-For strings with an odd number of characters, the assumption is that the middle
-character goes on both sides.
-
-```javascript
-Simplex('Roses are <*rose color*>', { fieldMarkers: '<*>' })
-  .match('Roses are red');
-// => { 'rose color': 'red' }
-```
+want to represent fields differently, you can use the `fieldMarkers` option,
+which is described in more detail further down.
 
 ## Options
 
@@ -157,6 +125,65 @@ var simplex = new Simplex('first \tlast', { strictWhitespace: true });
 simplex.match('joe schmoe');   // => null
 simplex.match('joe\tschmoe');  // => null
 simplex.match('joe \tschmoe'); // => { first: 'joe', last: 'schmoe' }
+```
+
+### Field markers
+
+As mentioned earlier, Simplex defaults to treating *every word-like token* in a
+pattern expression as a field. This may not be what you want, if:
+
+- There are some words in the pattern itself that are not fields
+- You want to give some field(s) a name that is multiple words
+
+Here's an example of the first case:
+
+```javascript
+// The first 'format' below isn't a field; it's actually part of the pattern.
+Simplex('--format=<format>', { fieldMarkers: ['<', '>'] })
+  .match('--format=html');
+// => { format: 'html' }
+```
+
+And here's an example of the second case:
+
+```javascript
+// Without field markers, Simplex will think that 'silly' and 'greeting' below
+// name two separate fields. But we actually just want *one* field, called
+// 'silly greeting'. Notice that we also add the '*' to indicate that the
+// matched value can also consist of multiple words.
+Simplex('[silly greeting*], Mark!', { fieldMarkers: '[]' })
+  .match('Oh hai, Mark!');
+// => { 'silly greeting': 'Oh hai' }
+```
+
+Notice how we specified those field markers in the second example using just a
+simple string, `'[]'`. This tells Simplex that placeholders start with `'['` and
+end with `']'`. This works with any string; Simplex will take the first half as
+the left marker, and the second half as the right.
+
+```javascript
+Simplex('<div>{{content*}}</div>', { fieldMarkers: '{{}}' })
+  .match('<div>Hello, world!</div>');
+// => { content: 'Hello, world!' }
+```
+
+For strings with an odd number of characters, the assumption is that the middle
+character goes on both sides.
+
+```javascript
+Simplex('Roses are <*rose color*>', { fieldMarkers: '<*>' })
+  .match('Roses are red');
+// => { 'rose color': 'red' }
+```
+
+Of course, as shown in the `'--format'` example, you can also specify an array.
+You'll need to do this if you're using crazy asymmetrical field markers for some
+ridiculous reason.
+
+```javascript
+Simplex('one %^adjective$&@ example', { fieldMarkers: ['%^', '$&@'] })
+  .match('one CRAZY example');
+// => { adjective: 'CRAZY' }
 ```
 
 Questions? [Open a ticket!](https://github.com/dtao/simplex/issues)
