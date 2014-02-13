@@ -92,6 +92,8 @@ which is described in more detail further down.
 
 ## Options
 
+### Parsing
+
 By default, Simplex does some very basic type inference for numbers and boolean
 values.
 
@@ -104,7 +106,37 @@ Simplex('--verbose=<verbose>', { fieldMarkers: '<>' })
 // => { verbose: true }
 ```
 
-This isn't configurable yet, but it will be!
+You can customize this behavior by specifying the `parser` option:
+
+```javascript
+var simplex = new Simplex('month/day', {
+  parser: function(x) {
+    return parseInt(x, 8);
+  }
+});
+
+simplex.match('12/25');
+// => { month: 10, day: 21 }
+```
+
+If you want to parse different fields differently, you can pass an object
+mapping field names to parsing functions:
+
+```javascript
+var simplex = new Simplex('name percentile%', {
+  parser: {
+    name: function(name) {
+      return name.toUpperCase();
+    },
+    percentile: function(percentile) {
+      return Number((percentile / 100).toFixed(2));
+    }
+  }
+});
+
+simplex.match('dtao 88%');
+// => { name: 'DTAO', percentile: 0.88 }
+```
 
 ### Whitespace
 

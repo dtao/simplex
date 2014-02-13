@@ -5,9 +5,15 @@
 (function() {
 
   /**
+   * @typedef {function(string):*} Parser
+   */
+  var Parser;
+
+  /**
    * @typedef {Object} SimplexOptions
    * @property {Array.<string>} fieldMarkers
    * @property {boolean} strictWhitespace
+   * @property {Parser|Object.<string, Parser>} parser
    */
   var SimplexOptions;
 
@@ -77,15 +83,11 @@
      * // => { 'foo bar': 'baz' }
      */
     match: function match(text) {
-      if (this.options.global) {
-        return this.matchAll(text);
-      }
-
       var regexMatch = text.match(this.matcher.pattern);
       if (!regexMatch) {
         return null;
       }
-      return mapMatch(regexMatch, this.matcher.map);
+      return mapMatch(regexMatch, this.matcher.map, this.options.parser);
     },
 
     /**
@@ -117,7 +119,7 @@
 
       var results = [];
       while (regexMatch = pattern.exec(text)) {
-        results.push(mapMatch(regexMatch, map));
+        results.push(mapMatch(regexMatch, map, this.options.parser));
       }
 
       return results;
@@ -128,20 +130,65 @@
    * @private
    * @param {MatchData} match
    * @param {Array.<string>} map
+   * @param {Parser|Object.<string, Parser>} parser
    *
    * @example
-   * var match = 'foo=bar'.match(/(\w+)=(\w+)/);
-   * mapMatch(match, ['name', 'value']); // => { name: 'foo', value: 'bar' }
+   * var fooBarMatch = 'foo=bar'.match(/(\w+)=(\w+)/),
+   *     numberMatch = '11'.match(/(\d+)/),
+   *     customMatch = 'oct 31 == dec 25?'.match(/oct (\d+) == dec (\d+)\?/);
+   *
+   * mapMatch(fooBarMatch, ['name', 'value']);
+   * // => { name: 'foo', value: 'bar' }
+   *
+   * // Test custom parser
+   * mapMatch(numberMatch, ['x'], function(s) { return parseInt(s, 16); });
+   * // => { x: 17 }
+   *
+   * // Test parser map
+   * mapMatch(customMatch, ['oct', 'dec'], {
+   *   oct: function(s) { return parseInt(s, 8); },
+   *   dec: function(s) { return parseInt(s, 10); }
+   * });
+   * // => { oct: 25, dec: 25 }
    */
-  function mapMatch(match, map) {
+  function mapMatch(match, map, parser) {
+    parser = wrapParser(parser);
+
     var data = {};
+
     for (var i = 0, len = map.length; i < len; ++i) {
       if (i > match.length) {
         break;
       }
-      data[map[i]] = weakParse(match[i + 1]);
+
+      data[map[i]] = parser(match[i + 1], map[i]);
     }
     return data;
+  }
+
+  /**
+   * @private
+   * @param {Parser|Object.<string, Parser>} parser
+   * @returns {function(string):Parser}
+   */
+  function wrapParser(parser) {
+    if (typeof parser === 'function') {
+      return parser;
+    }
+
+    if (typeof parser !== 'object' || !parser) {
+      return weakParse;
+    }
+
+    return function(match, fieldName) {
+      var parse = parser[fieldName];
+
+      if (typeof parse === 'function') {
+        return parse(match);
+      }
+
+      return match;
+    };
   }
 
   /**
