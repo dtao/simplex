@@ -74,11 +74,11 @@ take this expression:
     term (type) def*
 
 The *fields* are `term`, `type`, and `def`. When you call `match`, Simplex will
-look for a word where each field is. The '*' after `def` tells Simplex to match
-potentially *multiple* words for that field.
+look for a word where each field is. The '\*' after `def` tells Simplex to match
+(potentially) *multiple* words for that field.
 
-If it matches all fields, it will return an object whose keys are the names of
-the fields, and whose values are the matches:
+When all fields are matched, the result will be an object whose keys are the
+names of the fields, and whose values are the matches:
 
 ```javascript
 Simplex('term (type) def*').match('coffee (noun) a tasty hot beverage');
@@ -105,14 +105,18 @@ Simplex('[silly greeting*], Mark!', { fieldMarkers: '[]' })
 Consider the first example above. Notice we specified the string `'<>'`. This
 tells Simplex that placeholders start with `'<'` and end with `'>'`. This works
 with any string; Simplex will take the first half as the left marker, and the
-second half as the right. For strings with an odd number of characters, the
-assumption is that the middle character goes on both sides.
+second half as the right.
 
 ```javascript
 Simplex('<div>{{content*}}</div>', { fieldMarkers: '{{}}' })
   .match('<div>Hello, world!</div>');
 // => { content: 'Hello, world!' }
+```
 
+For strings with an odd number of characters, the assumption is that the middle
+character goes on both sides.
+
+```javascript
 Simplex('Roses are <*rose color*>', { fieldMarkers: '<*>' })
   .match('Roses are red');
 // => { 'rose color': 'red' }
@@ -134,10 +138,26 @@ Simplex('--verbose=<verbose>', { fieldMarkers: '<>' })
 
 This isn't configurable yet, but it will be!
 
-### strictWhitespace
+### Whitespace
 
-By default Simplex is *lenient* with whitespace. Set this option to `true` to
-make it strict.
+By default Simplex is *lenient* with whitespace, meaning every space in a
+pattern expression matches any number of spaces.
+
+```javascript
+Simplex('salutation valediction').match('hello     goodbye');
+// => { salutation: 'hello', valediction: 'goodbye' }
+```
+
+Enable the `strictWhitespace` option to make it *strict*, so that whitespace
+must be matched exactly.
+
+```javascript
+var simplex = new Simplex('first \tlast', { strictWhitespace: true });
+
+simplex.match('joe schmoe');   // => null
+simplex.match('joe\tschmoe');  // => null
+simplex.match('joe \tschmoe'); // => { first: 'joe', last: 'schmoe' }
+```
 
 Questions? [Open a ticket!](https://github.com/dtao/simplex/issues)
 
